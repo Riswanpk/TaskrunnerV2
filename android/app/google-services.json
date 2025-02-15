@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "860390615871",
+    "project_id": "taskrunnerv2-4c675",
+    "storage_bucket": "taskrunnerv2-4c675.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:860390615871:android:cd44ded4b43ee5c138418a",
+        "android_client_info": {
+          "package_name": "com.example.taskrunnerv2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "860390615871-luoc8aqe28idnadnsqdfuqds5fl8ert1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.taskrunnerv2",
+            "certificate_hash": "76a767ca6ec6f80e5daaf18a8ac2090250a38f04"
+          }
+        },
+        {
+          "client_id": "860390615871-embsj688kooiiubkkl8acfb403c4eajt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALmO4275BOX_qfYRPKJKDAekAKBL95fnU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "860390615871-embsj688kooiiubkkl8acfb403c4eajt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
