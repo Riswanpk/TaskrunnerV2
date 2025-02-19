@@ -380,152 +380,154 @@ Widget _buildOrdersList() {
 
       var orders = snapshot.data!.docs;
 
-      return SingleChildScrollView(
-        child: Wrap(
-          spacing: 15,
-          runSpacing: 15,
-          children: orders.map((order) {
-            var message = order['message'];
-            var priority = order['priority'];
-            var isCompleted = order['completed'] ?? false;
-            var timestamp = order['timestamp'] != null
-                ? order['timestamp'].toDate()
-                : DateTime.now();
-            var shopId = order['shopId'];
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          double screenWidth = constraints.maxWidth;
+          bool isPhoneScreen = screenWidth < 600;
+          double cardMaxWidth = isPhoneScreen ? (screenWidth / 2) - 20 : 250;
 
-            String formattedTime = DateFormat('h:mm a').format(timestamp);
+          return SingleChildScrollView(
+            child: Wrap(
+              spacing: 15,
+              runSpacing: 15,
+              alignment: WrapAlignment.start,
+              children: orders.map((order) {
+                var message = order['message'];
+                var priority = order['priority'];
+                var isCompleted = order['completed'] ?? false;
+                var timestamp = order['timestamp'] != null
+                    ? order['timestamp'].toDate()
+                    : DateTime.now();
+                var shopId = order['shopId'];
 
-            Color priorityColor = (priority == 'High')
-                ? Colors.redAccent
-                : (priority == 'Moderate')
-                    ? const Color.fromARGB(255, 224, 247, 17)
-                    : Colors.greenAccent;
+                String formattedTime = DateFormat('h:mm a').format(timestamp);
 
-            Color borderColor = isCompleted ? Colors.grey : priorityColor;
+                Color priorityColor = (priority == 'High')
+                    ? Colors.redAccent
+                    : (priority == 'Moderate')
+                        ? const Color.fromARGB(255, 224, 247, 17)
+                        : Colors.greenAccent;
 
-            // Determine shop icon path based on shopId
-            String shopIconPath = (shopId == 'Shop 1')
-                ? 'assets/shop1.png'
-                : 'assets/shop2.png';
+                Color borderColor = isCompleted ? Colors.grey : priorityColor;
 
-            return Stack(
-              children: [
-                // Order Container
-                Container(
-                  constraints: BoxConstraints(maxWidth: 250),
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
+                // Determine shop icon path based on shopId
+                String shopIconPath = (shopId == 'Shop 1')
+                    ? 'assets/shop1.png'
+                    : 'assets/shop2.png';
 
-                    // 🔥 Even Thicker Border for Maximum Visibility
-                    border: Border.all(color: borderColor, width: 6), 
-
-                    // 🔥 More Intense Glow Effect
-                    boxShadow: [
-                      BoxShadow(
-                        color: borderColor.withOpacity(0.9), // Stronger color impact
-                        blurRadius: 40, // Increased blur for a bolder glow
-                        spreadRadius: 8, // Expands the glow effect further
-                        offset: Offset(0, 0),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Order Row with Checkbox and Message
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Checkbox(
-                            value: isCompleted,
-                            onChanged: (newValue) {
-                              _updateOrderCompletion(order.id, newValue!);
-                            },
-                            activeColor: borderColor,
+                return Stack(
+                  children: [
+                    Container(
+                      constraints: BoxConstraints(maxWidth: cardMaxWidth),
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: borderColor, width: 6),
+                        boxShadow: [
+                          BoxShadow(
+                            color: borderColor.withOpacity(0.9),
+                            blurRadius: 40,
+                            spreadRadius: 8,
+                            offset: Offset(0, 0),
                           ),
-                          Expanded(
-                            child: Text(
-                              message,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: isCompleted ? Colors.grey : Colors.black87,
-                                decoration: isCompleted
-                                    ? TextDecoration.lineThrough
-                                    : TextDecoration.none,
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Checkbox(
+                                value: isCompleted,
+                                onChanged: (newValue) {
+                                  _updateOrderCompletion(order.id, newValue!);
+                                },
+                                activeColor: borderColor,
                               ),
-                              softWrap: true,
-                              overflow: TextOverflow.visible,
+                              Expanded(
+                                child: Text(
+                                  message,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: isCompleted ? Colors.grey : Colors.black87,
+                                    decoration: isCompleted
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                  ),
+                                  softWrap: true,
+                                  overflow: TextOverflow.visible,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 5),
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: Text(
+                              formattedTime,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 5),
-                      // Timestamp
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        child: Text(
-                          formattedTime,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey,
+                    ),
+
+                    // Delete & Edit Buttons (Top Right)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Row(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              _editOrder(order);
+                            },
+                            icon: Icon(Icons.edit),
+                            color: Colors.black,
                           ),
+                          IconButton(
+                            onPressed: () {
+                              _deleteOrder(order.id);
+                            },
+                            icon: Icon(Icons.close),
+                            color: Colors.redAccent,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Shop Logo (Bottom Left)
+                    Positioned(
+                      bottom: 10,
+                      left: 10,
+                      child: CircleAvatar(
+                        backgroundColor: Colors.transparent,
+                        radius: 20,
+                        child: Image.asset(
+                          shopIconPath,
+                          fit: BoxFit.contain,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-
-                // Delete & Edit Buttons
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          _editOrder(order); // Open edit dialog
-                        },
-                        icon: Icon(Icons.edit),
-                        color: const Color.fromARGB(255, 0, 0, 0),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          _deleteOrder(order.id);
-                        },
-                        icon: Icon(Icons.close),
-                        color: Colors.redAccent,
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Shop Icon at Bottom Left
-                Positioned(
-                  bottom: 10,
-                  left: 10,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.transparent,
-                    radius: 20,
-                    child: Image.asset(
-                      shopIconPath,
-                      fit: BoxFit.contain,
                     ),
-                  ),
-                ),
-              ],
-            );
-
-
-          }).toList(),
-        ),
+                  ],
+                );
+              }).toList(),
+            ),
+          );
+        },
       );
     },
   );
 }
+
+
 
 
 

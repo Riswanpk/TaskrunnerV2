@@ -60,6 +60,8 @@ dev_dependencies:
 flutter:
   assets:
     - assets/google.png
+    - assets/shop1.png
+    - assets/shop2.png
 
 
 
