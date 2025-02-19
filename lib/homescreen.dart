@@ -480,28 +480,37 @@ Widget _buildOrdersList() {
                     ),
 
                     // Delete & Edit Buttons (Top Right)
+                   // Edit Button (Top Left Corner)
                     Positioned(
-                      top: 0,
-                      right: 0,
-                      child: Row(
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              _editOrder(order);
-                            },
-                            icon: Icon(Icons.edit),
-                            color: Colors.black,
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              _deleteOrder(order.id);
-                            },
-                            icon: Icon(Icons.close),
-                            color: Colors.redAccent,
-                          ),
-                        ],
+                      bottom: 8,
+                      right: 12,  // 🔥 Moved to the left corner
+                      child: IconButton(
+                        onPressed: () {
+                          _editOrder(order);
+                        },
+                        icon: Icon(Icons.edit, size: 18), // 🔥 Reduced icon size
+                        padding: EdgeInsets.zero, // 🔥 Removes extra padding
+                        constraints: BoxConstraints(), // 🔥 Ensures compact button size
+                        color: Colors.black,
                       ),
                     ),
+
+                    // Delete Button (Top Right Corner)
+                    Positioned(
+                      top: 5,
+                      right: 5, // ✅ Kept delete button in the top-right corner
+                      child: IconButton(
+                        onPressed: () {
+                          _deleteOrder(order.id);
+                        },
+                        icon: Icon(Icons.close, size: 22), // ✅ Kept delete button same size
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(),
+                        color: Colors.redAccent,
+                      ),
+                    ),
+
+
 
                     // Shop Logo (Bottom Left)
                     Positioned(
