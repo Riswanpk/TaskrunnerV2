@@ -10,7 +10,7 @@ class SignPage extends StatefulWidget {
 
 class _SignPageState extends State<SignPage> {
   final GoogleSignIn googleSignIn = GoogleSignIn(
-    clientId: "860390615871-embsj688kooiiubkkl8acfb403c4eajt.apps.googleusercontent.com", // Replace with your actual Web Client ID
+    clientId: "YOUR_CLIENT_ID.apps.googleusercontent.com", // Replace with your actual Web Client ID
   );
 
   bool _isLoading = false;
