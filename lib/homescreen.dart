@@ -363,7 +363,6 @@ Widget _buildOrdersList() {
     stream: _firestore
         .collection('orders')
         .orderBy('timestamp', descending: false)
-        .limit(20)
         .snapshots(),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
