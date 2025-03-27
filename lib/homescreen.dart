@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -15,14 +16,17 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedPriority = '';
   String _typedMessage = '';
   String _selectedShop = ''; 
-  // Initialize with an empty string or a default value
+  String? _lastOrderId; // ✅ Fix: Declare the variable
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FocusNode _focusNode = FocusNode();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
   
   @override
   void dispose() {
     _focusNode.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -221,50 +225,92 @@ Widget _shopTile(String iconPath, String shopName, String selectedShop,
 
 
   // Store the message to Firestore
-  void _storeMessageToFirestore() async {
-  User? user = FirebaseAuth.instance.currentUser;
 
-  if (user == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("You need to be logged in to add messages.")),
-    );
-    return;
-  }
+    void _storeMessageToFirestore() async {
+      User? user = FirebaseAuth.instance.currentUser;
 
-  if (_controller.text.isNotEmpty && _selectedPriority.isNotEmpty && _selectedShop.isNotEmpty) {
-    try {
-      await _firestore.collection('orders').add({
-        'message': _controller.text,
-        'priority': _selectedPriority,
-        'shopId': _selectedShop,  // Ensure the field is named correctly and is being stored
-        'timestamp': FieldValue.serverTimestamp(),
-        'userId': user.uid,
-        'completed': false,
-      });
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("You need to be logged in to add messages.")),
+        );
+        return;
+      }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Message added to orders"),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      if (_controller.text.isNotEmpty && _selectedPriority.isNotEmpty && _selectedShop.isNotEmpty) {
+        try {
+          await _firestore.collection('orders').add({
+            'message': _controller.text,
+            'priority': _selectedPriority,
+            'shopId': _selectedShop,
+            'timestamp': FieldValue.serverTimestamp(),
+            'userId': user.uid,
+            'completed': false,
+          });
 
-      _controller.clear();
-      setState(() {
-        _selectedPriority = '';
-        _selectedShop = '';  // Clear the shop selection
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error adding message: $e")),
-      );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Message added to orders"),
+              duration: Duration(seconds: 1),
+            ),
+          );
+
+          _controller.clear();
+          setState(() {
+            _selectedPriority = '';
+            _selectedShop = '';
+          });
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error adding message: $e")),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please enter a message, select a priority, and choose a shop")),
+        );
+      }
     }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Please enter a message, select a priority, and choose a shop")),
-    );
+
+    @override
+    void initState() {
+      super.initState();
+      _listenForNewOrders(); // Start listening for Firestore updates
+    }
+
+    void _listenForNewOrders() {
+      _firestore
+          .collection('orders')
+          .orderBy('timestamp', descending: true)
+          .snapshots()
+          .listen((QuerySnapshot snapshot) {
+        for (var change in snapshot.docChanges) {
+          if (change.type == DocumentChangeType.added) {
+            final newOrder = change.doc;
+            final String newOrderId = newOrder.id;
+
+            // 🟢 Play sound only when a new order is added
+            if (_lastOrderId != null && _lastOrderId != newOrderId) {
+              _playDingSound();
+            }
+
+            _lastOrderId = newOrderId; // Store last known order ID
+          }
+        }
+      });
+    }
+
+
+    
+
+
+// 🟢 Function to play the ding sound
+  void _playDingSound() async {
+    try {
+      await _audioPlayer.play(AssetSource('ding.mp3')); // Add 'ding.mp3' in assets
+    } catch (e) {
+      print("Error playing sound: $e");
+    }
   }
-}
 
 
 
