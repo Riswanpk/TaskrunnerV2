@@ -10,6 +10,8 @@ class SidePanel extends StatefulWidget {
   final DateTime? selectedDate;
   final VoidCallback onLogout;
   final VoidCallback onDeleteAll;
+  final Widget? summaryBar; // Add this field
+
 
   const SidePanel({
     required this.expanded,
@@ -18,6 +20,7 @@ class SidePanel extends StatefulWidget {
     required this.selectedDate,
     required this.onLogout,
     required this.onDeleteAll,
+    this.summaryBar,
     super.key,
   });
 
@@ -90,6 +93,7 @@ class _SidePanelState extends State<SidePanel> {
             ),
             child: Column(
               children: [
+                if (widget.summaryBar != null) widget.summaryBar!,
                 // --- Add this block at the top of the Column ---
                 SizedBox(height: 16),
                 widget.expanded
@@ -116,7 +120,13 @@ class _SidePanelState extends State<SidePanel> {
                   alignment: Alignment.topRight,
                   child: IconButton(
                     icon: Icon(widget.expanded ? Icons.chevron_left : Icons.chevron_right, color: Colors.white70),
-                    onPressed: () => widget.onExpandToggle(!widget.expanded),
+                    onPressed: () {
+                      if (MediaQuery.of(context).size.width < 600) {
+                        Navigator.of(context).pop(); // Close drawer on phone
+                      } else {
+                        widget.onExpandToggle(!widget.expanded);
+                      }
+                    },
                   ),
                 ),
                 if (widget.expanded)

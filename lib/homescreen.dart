@@ -734,22 +734,59 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     return Scaffold(
       drawer: phone
-          ? Drawer(
-              child: SafeArea(
-                child: SidePanel(
-                  expanded: true,
-                  onExpandToggle: (_) {},
-                  onDateSelected: (date) {
-                    setState(() => _selectedDate = date);
-                    Navigator.pop(context); // close drawer after selection
-                  },
-                  selectedDate: _selectedDate,
-                  onLogout: _logOut,
-                  onDeleteAll: _deleteAllOrders,
-                ),
+        ? Drawer(
+            child: SafeArea(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: _firestore
+                    .collection('orders')
+                    .orderBy('timestamp', descending: false)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  var orders = snapshot.hasData ? snapshot.data!.docs : <QueryDocumentSnapshot>[];
+                  // Filter by selected date if needed
+                  if (_selectedDate != null) {
+                    final selectedStr = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+                    orders = orders.where((order) {
+                      final ts = order['timestamp'];
+                      if (ts == null) return false;
+                      final dt = ts.toDate();
+                      return DateFormat('yyyy-MM-dd').format(dt) == selectedStr;
+                    }).toList();
+                  } else {
+                    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                    orders = orders.where((order) {
+                      final ts = order['timestamp'];
+                      if (ts == null) return false;
+                      final dt = ts.toDate();
+                      return DateFormat('yyyy-MM-dd').format(dt) == todayStr;
+                    }).toList();
+                  }
+                  final summary = _getOrderSummary(orders);
+
+                  return SidePanel(
+                    expanded: true,
+                    onExpandToggle: (_) {},
+                    onDateSelected: (date) {
+                      setState(() => _selectedDate = date);
+                      Navigator.pop(context); // close drawer after selection
+                    },
+                    selectedDate: _selectedDate,
+                    onLogout: _logOut,
+                    onDeleteAll: _deleteAllOrders,
+                    summaryBar: OrderSummaryBar(
+                      total: summary['total']!,
+                      completed: summary['completed']!,
+                      red: summary['red']!,
+                      yellow: summary['yellow']!,
+                      green: summary['green']!,
+                      compact: true, 
+                    ),
+                  );
+                },
               ),
-            )
-          : null,
+            ),
+          )
+        : null,
       appBar: phone
         ? AppBar(
             backgroundColor: Colors.transparent,
@@ -1279,6 +1316,7 @@ class OrderSummaryBar extends StatelessWidget {
   final int red;
   final int yellow;
   final int green;
+  final bool compact;
 
   const OrderSummaryBar({
     required this.total,
@@ -1286,17 +1324,25 @@ class OrderSummaryBar extends StatelessWidget {
     required this.red,
     required this.yellow,
     required this.green,
+    this.compact = false,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
+    final double iconSize = compact ? 16 : 22;
+    final double circleSize = compact ? 18 : 28;
+    final double fontSize = compact ? 12 : 18;
+    final double labelSize = compact ? 10 : 14;
+    final double paddingV = compact ? 8 : 18;
+    final double paddingH = compact ? 8 : 24;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(32),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
           decoration: BoxDecoration(
             color: Colors.black.withOpacity(0.55),
             borderRadius: BorderRadius.circular(32),
@@ -1311,15 +1357,15 @@ class OrderSummaryBar extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _summaryItem(Icons.list_alt, "Total", total, Colors.white),
-              SizedBox(width: 18),
-              _summaryItem(Icons.check_circle, "Completed", completed, Colors.greenAccent),
-              SizedBox(width: 18),
-              _colorSummary(Colors.redAccent, red),
-              SizedBox(width: 8),
-              _colorSummary(Color(0xFFF7CA18), yellow),
-              SizedBox(width: 8),
-              _colorSummary(Colors.greenAccent, green),
+              _summaryItem(Icons.list_alt, "Total", total, Colors.white, iconSize, fontSize, labelSize),
+              SizedBox(width: compact ? 8 : 18),
+              _summaryItem(Icons.check_circle, "Completed", completed, Colors.greenAccent, iconSize, fontSize, labelSize),
+              SizedBox(width: compact ? 8 : 18),
+              _colorSummary(Colors.redAccent, red, circleSize, fontSize),
+              SizedBox(width: compact ? 4 : 8),
+              _colorSummary(Color(0xFFF7CA18), yellow, circleSize, fontSize),
+              SizedBox(width: compact ? 4 : 8),
+              _colorSummary(Colors.greenAccent, green, circleSize, fontSize),
             ],
           ),
         ),
@@ -1327,26 +1373,26 @@ class OrderSummaryBar extends StatelessWidget {
     );
   }
 
-  Widget _summaryItem(IconData icon, String label, int count, Color color) {
+  Widget _summaryItem(IconData icon, String label, int count, Color color, double iconSize, double fontSize, double labelSize) {
     return Row(
       children: [
-        Icon(icon, color: color, size: 22),
-        SizedBox(width: 6),
-        Text("$count", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18)),
-        SizedBox(width: 4),
-        Text(label, style: TextStyle(color: Colors.white70, fontSize: 14)),
+        Icon(icon, color: color, size: iconSize),
+        SizedBox(width: 3),
+        Text("$count", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: fontSize)),
+        SizedBox(width: 2),
+        Text(label, style: TextStyle(color: Colors.white70, fontSize: labelSize)),
       ],
     );
   }
 
-  Widget _colorSummary(Color color, int count) {
+  Widget _colorSummary(Color color, int count, double size, double fontSize) {
     return Container(
-      width: 28,
-      height: 28,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
+        border: Border.all(color: Colors.white, width: 1),
       ),
       child: Center(
         child: Text(
@@ -1354,7 +1400,7 @@ class OrderSummaryBar extends StatelessWidget {
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 15,
+            fontSize: fontSize - 2,
           ),
         ),
       ),
