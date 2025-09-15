@@ -5,6 +5,7 @@ import 'signpage.dart';
 import 'homescreen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; // Add this import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +23,14 @@ void main() async {
     await Firebase.initializeApp();
   }
 
-  runApp(MyApp());
+  runApp(
+    ScreenUtilInit(
+      designSize: Size(1080, 2400), // Pixel 7 logical pixels
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) => MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

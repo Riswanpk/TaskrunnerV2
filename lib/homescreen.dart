@@ -323,6 +323,41 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  Widget _appBarSummaryItem(IconData icon, int count, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 15),
+        SizedBox(width: 2),
+        Text(
+          "$count",
+          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+      ],
+    );
+  }
+
+  Widget _appBarColorSummary(Color color, int count) {
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 1),
+      ),
+      child: Center(
+        child: Text(
+          "$count",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+          ),
+        ),
+      ),
+    );
+  }
+
   // Add these helper widgets inside your _HomeScreenState:
 
   Widget _editPriorityCircle(Color color, String label, String selectedPriority, Function(String) onTap) {
@@ -438,11 +473,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           builder: (context, constraints) {
             double screenWidth = constraints.maxWidth;
             bool isPhoneScreen = phone;
-            double cardMaxWidth = isPhoneScreen ? (screenWidth / 2) - 16 : 250;
+            double cardMaxWidth = isPhoneScreen ? (screenWidth / 2) - 8 : 250; // reduced spacing
+            double cardMinWidth = isPhoneScreen ? 120 : 180; // allow smaller cards on phone
             return SingleChildScrollView(
               child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
+                spacing: isPhoneScreen ? 6 : 10, // less spacing for phone
+                runSpacing: isPhoneScreen ? 6 : 10,
                 alignment: WrapAlignment.start,
                 children: orders.map((order) {
                   var message = order['message'];
@@ -480,7 +516,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Container(
                         constraints: BoxConstraints(
                           maxWidth: cardMaxWidth,
-                          minWidth: isPhoneScreen ? 0 : 180,
+                          minWidth: cardMinWidth,
                         ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(22),
@@ -578,12 +614,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                       // Shop logo
                                       CircleAvatar(
                                         backgroundColor: Colors.white.withOpacity(0.10),
-                                        radius: 18,
+                                        radius: phone ? 14 : 18,
                                         child: Image.asset(
                                           shopIconPath,
                                           fit: BoxFit.contain,
-                                          width: 22,
-                                          height: 22,
+                                          width: phone ? 16 : 22,
+                                          height: phone ? 16 : 22,
                                         ),
                                       ),
                                       Spacer(),
@@ -591,26 +627,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                       Text(
                                         formattedTime,
                                         style: TextStyle(
-                                          fontSize: 13,
+                                          fontSize: phone ? 11 : 13,
                                           color: Colors.white60,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
-                                      SizedBox(width: 8),
+                                      SizedBox(width: phone ? 4 : 8),
                                       // Edit button
                                       _glassIconButton(
                                         icon: Icons.edit_rounded,
                                         onTap: () => _editOrder(order),
                                         color: Colors.blueAccent,
                                         tooltip: "Edit",
+                                        size: phone ? 18 : 20,
                                       ),
-                                      SizedBox(width: 4),
+                                      SizedBox(width: phone ? 2 : 4),
                                       // Delete button
                                       _glassIconButton(
                                         icon: Icons.delete_forever_rounded,
                                         onTap: () => _deleteOrder(order.id),
                                         color: Colors.redAccent,
                                         tooltip: "Delete",
+                                        size: phone ? 18 : 20,
                                       ),
                                     ],
                                   ),
@@ -788,18 +826,78 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           )
         : null,
       appBar: phone
-        ? AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            centerTitle: true,
-            title: Image.asset(
-              'assets/logo.png',
-              height: 52, // Increased from 36
-            ),
-            leading: Builder(
-              builder: (context) => IconButton(
-                icon: Icon(Icons.menu, color: const Color.fromARGB(0, 255, 255, 255), size: 32),
-                onPressed: () => Scaffold.of(context).openDrawer(),
+        ? PreferredSize(
+            preferredSize: Size.fromHeight(90),
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              centerTitle: true,
+              title: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center, // <-- Center column contents
+                  children: [
+                    Center( // <-- Center the logo horizontally
+                      child: SizedBox(
+                        height: 40,
+                        child: Image.asset(
+                          'assets/logo.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    StreamBuilder<QuerySnapshot>(
+                      stream: _firestore
+                          .collection('orders')
+                          .orderBy('timestamp', descending: false)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        var orders = snapshot.hasData ? snapshot.data!.docs : <QueryDocumentSnapshot>[];
+                        // Filter by selected date if needed
+                        if (_selectedDate != null) {
+                          final selectedStr = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+                          orders = orders.where((order) {
+                            final ts = order['timestamp'];
+                            if (ts == null) return false;
+                            final dt = ts.toDate();
+                            return DateFormat('yyyy-MM-dd').format(dt) == selectedStr;
+                          }).toList();
+                        } else {
+                          final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                          orders = orders.where((order) {
+                            final ts = order['timestamp'];
+                            if (ts == null) return false;
+                            final dt = ts.toDate();
+                            return DateFormat('yyyy-MM-dd').format(dt) == todayStr;
+                          }).toList();
+                        }
+                        final summary = _getOrderSummary(orders);
+
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _appBarSummaryItem(Icons.list_alt, summary['total']!, Colors.white),
+                            SizedBox(width: 8),
+                            _appBarSummaryItem(Icons.check_circle, summary['completed']!, Colors.greenAccent),
+                            SizedBox(width: 8),
+                            _appBarColorSummary(Colors.redAccent, summary['red']!),
+                            SizedBox(width: 4),
+                            _appBarColorSummary(Color(0xFFF7CA18), summary['yellow']!),
+                            SizedBox(width: 4),
+                            _appBarColorSummary(Colors.greenAccent, summary['green']!),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              leading: Builder(
+                builder: (context) => IconButton(
+                  icon: Icon(Icons.menu, color: Colors.white, size: 28),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
               ),
             ),
           )
@@ -852,7 +950,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Align(
                         alignment: Alignment.topLeft,
                         child: IconButton(
-                          icon: Icon(Icons.menu, color: Colors.white, size: 32),
+                          icon: Icon(Icons.menu, color: const Color.fromARGB(0, 255, 255, 255), size: 32),
                           onPressed: () => Scaffold.of(context).openDrawer(),
                         ),
                       ),
@@ -943,6 +1041,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     required VoidCallback onTap,
     required Color color,
     String? tooltip,
+    double size = 20,
   }) {
     return Tooltip(
       message: tooltip ?? "",
@@ -950,8 +1049,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Container(
-          width: 32,
-          height: 32,
+          width: size + 12,
+          height: size + 12,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
@@ -974,7 +1073,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               width: 1.2,
             ),
           ),
-          child: Icon(icon, color: color, size: 20),
+          child: Icon(icon, color: color, size: size),
         ),
       ),
     );
