@@ -659,19 +659,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                       ),
                       // Fluid animated border overlay (only when completed)
-                      if (isCompleted)
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: AnimatedBuilder(
-                              animation: _fluidController,
-                              builder: (context, child) {
-                                return CustomPaint(
-                                  painter: _FluidBorderPainter(_fluidController.value),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
+                      
                     ],
                   );
                 }).toList(),
