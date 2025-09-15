@@ -29,7 +29,8 @@ class _SignPageState extends State<SignPage> {
           idToken: googleAuth.idToken,
         );
         await FirebaseAuth.instance.signInWithCredential(credential);
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+        // REMOVE: Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+        // Navigation is now handled by RootPage in main.dart
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sign-in failed: $e")));
@@ -44,7 +45,8 @@ class _SignPageState extends State<SignPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+      // REMOVE: Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+      // Navigation is now handled by RootPage in main.dart
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sign-in failed: $e")));
     }
