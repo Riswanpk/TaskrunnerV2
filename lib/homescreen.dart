@@ -22,6 +22,34 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FocusNode _focusNode = FocusNode();
   final AudioPlayer _audioPlayer = AudioPlayer();
+  // Add inside _HomeScreenState
+  bool get isPhoneView => MediaQuery.of(context).size.width < 600;
+    Map<String, int> _getOrderSummary(List<QueryDocumentSnapshot> orders) {
+    int total = orders.length;
+    int completed = 0;
+    int red = 0;
+    int yellow = 0;
+    int green = 0;
+
+    for (var order in orders) {
+      final isCompleted = order['completed'] == true;
+      if (isCompleted) completed++;
+      // Only count priorities for open (not completed) orders
+      if (!isCompleted) {
+        if (order['priority'] == 'High') red++;
+        if (order['priority'] == 'Moderate') yellow++;
+        if (order['priority'] == 'Low') green++;
+      }
+    }
+
+    return {
+      'total': total,
+      'completed': completed,
+      'red': red,
+      'yellow': yellow,
+      'green': green,
+    };
+  }
 
   late AnimationController _fluidController;
 
@@ -95,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("You need to be logged in to add messages.")),
+        SnackBar(content: Text("You need to be logged in to add Order.")),
       );
       return;
     }
@@ -114,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Message added to orders"),
+            content: Text("Order added to orders"),
             duration: Duration(seconds: 1),
           ),
         );
@@ -125,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter a message, select a priority, and choose a shop")),
+        SnackBar(content: Text("Please enter a Order, select a priority, and choose a shop")),
       );
     }
   }
@@ -290,9 +318,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
             ),
-          ),
-        );
-      },
+        ));
+        },
     );
   }
 
@@ -366,7 +393,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   // 🟢 Updated _buildOrdersList with Edit Button
-  Widget _buildOrdersList() {
+  Widget _buildOrdersList({bool phone = false}) {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('orders')
@@ -410,13 +437,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         return LayoutBuilder(
           builder: (context, constraints) {
             double screenWidth = constraints.maxWidth;
-            bool isPhoneScreen = screenWidth < 600;
-            double cardMaxWidth = isPhoneScreen ? (screenWidth / 2) - 20 : 250;
-
+            bool isPhoneScreen = phone;
+            double cardMaxWidth = isPhoneScreen ? (screenWidth / 2) - 16 : 250;
             return SingleChildScrollView(
               child: Wrap(
-                spacing: 15,
-                runSpacing: 15,
+                spacing: 10,
+                runSpacing: 10,
                 alignment: WrapAlignment.start,
                 children: orders.map((order) {
                   var message = order['message'];
@@ -452,7 +478,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   return Stack(
                     children: [
                       Container(
-                        constraints: BoxConstraints(maxWidth: cardMaxWidth),
+                        constraints: BoxConstraints(
+                          maxWidth: cardMaxWidth,
+                          minWidth: isPhoneScreen ? 0 : 180,
+                        ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(22),
                           border: Border.all(
@@ -701,14 +730,52 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final bool phone = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
+      drawer: phone
+          ? Drawer(
+              child: SafeArea(
+                child: SidePanel(
+                  expanded: true,
+                  onExpandToggle: (_) {},
+                  onDateSelected: (date) {
+                    setState(() => _selectedDate = date);
+                    Navigator.pop(context); // close drawer after selection
+                  },
+                  selectedDate: _selectedDate,
+                  onLogout: _logOut,
+                  onDeleteAll: _deleteAllOrders,
+                ),
+              ),
+            )
+          : null,
+      appBar: phone
+        ? AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: true,
+            title: Image.asset(
+              'assets/logo.png',
+              height: 52, // Increased from 36
+            ),
+            leading: Builder(
+              builder: (context) => IconButton(
+                icon: Icon(Icons.menu, color: const Color.fromARGB(0, 255, 255, 255), size: 32),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+            ),
+          )
+        : null,
+      extendBodyBehindAppBar: true,
       body: SafeArea(
+        top: !phone, // Prevent double padding if AppBar is present
         child: Stack(
           children: [
             // Background image and blur
             Positioned.fill(
               child: Image.asset(
-                'assets/lightwaves.png',
+                'assets/waveblue.png',
                 fit: BoxFit.cover,
               ),
             ),
@@ -720,36 +787,112 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
             ),
-            // SidePanel (always on top, left)
-            Positioned(
-              top: 0,
-              left: 0,
-              bottom: 0,
-              child: SidePanel(
-                expanded: _sidePanelExpanded,
-                onExpandToggle: (val) {
-                  setState(() => _sidePanelExpanded = val);
-                  _saveSidePanelState(val);
-                },
-                onDateSelected: (date) => setState(() => _selectedDate = date),
-                selectedDate: _selectedDate,
-                onLogout: _logOut,
-                onDeleteAll: _deleteAllOrders,
+            // SidePanel for desktop only
+            if (!phone)
+              Positioned(
+                top: 0,
+                left: 0,
+                bottom: 0,
+                child: SidePanel(
+                  expanded: _sidePanelExpanded,
+                  onExpandToggle: (val) {
+                    setState(() => _sidePanelExpanded = val);
+                    _saveSidePanelState(val);
+                  },
+                  onDateSelected: (date) => setState(() => _selectedDate = date),
+                  selectedDate: _selectedDate,
+                  onLogout: _logOut,
+                  onDeleteAll: _deleteAllOrders,
+                ),
               ),
-            ),
-            // Main content (shifted right by side panel width)
+            // Main content
             Positioned.fill(
-              left: _sidePanelExpanded ? 230 : 56,
-              child: Column(
-                children: [
-                  SizedBox(height: 16),
-                  Expanded(child: _buildOrdersList()),
-                  OrderInputBar(
-                    onSend: (message, priority, shop) {
-                      _storeMessageToFirestore(message, priority, shop);
-                    },
-                  ),
-                ],
+              left: (!phone && _sidePanelExpanded) ? 230 : (!phone ? 56 : 0),
+              child: Builder(
+                builder: (context) => Column(
+                  children: [
+                    if (phone)
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: IconButton(
+                          icon: Icon(Icons.menu, color: Colors.white, size: 32),
+                          onPressed: () => Scaffold.of(context).openDrawer(),
+                        ),
+                      ),
+                    SizedBox(height: phone ? 8 : 16),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: phone ? 4 : 0, vertical: phone ? 4 : 0),
+                        child: _buildOrdersList(phone: phone),
+                      ),
+                    ),
+                    if (!phone)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: OrderInputBar(
+                                isPhone: phone,
+                                onSend: (message, priority, shop) {
+                                  _storeMessageToFirestore(message, priority, shop);
+                                },
+                              ),
+                            ),
+                            SizedBox(width: 18),
+                            StreamBuilder<QuerySnapshot>(
+                              stream: _firestore
+                                  .collection('orders')
+                                  .orderBy('timestamp', descending: false)
+                                  .snapshots(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) return SizedBox();
+                                var orders = snapshot.data!.docs;
+
+                                // Filter by selected date if needed
+                                if (_selectedDate != null) {
+                                  final selectedStr = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+                                  orders = orders.where((order) {
+                                    final ts = order['timestamp'];
+                                    if (ts == null) return false;
+                                    final dt = ts.toDate();
+                                    return DateFormat('yyyy-MM-dd').format(dt) == selectedStr;
+                                  }).toList();
+                                } else {
+                                  final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                                  orders = orders.where((order) {
+                                    final ts = order['timestamp'];
+                                    if (ts == null) return false;
+                                    final dt = ts.toDate();
+                                    return DateFormat('yyyy-MM-dd').format(dt) == todayStr;
+                                  }).toList();
+                                }
+
+                                final summary = _getOrderSummary(orders);
+
+                                return OrderSummaryBar(
+                                  total: summary['total']!,
+                                  completed: summary['completed']!,
+                                  red: summary['red']!,
+                                  yellow: summary['yellow']!,
+                                  green: summary['green']!,
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (phone)
+                      OrderInputBar(
+                        isPhone: phone,
+                        onSend: (message, priority, shop) {
+                          _storeMessageToFirestore(message, priority, shop);
+                        },
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -848,9 +991,11 @@ class _FluidBorderPainter extends CustomPainter {
 // --- OrderInputBar Widget ---
 class OrderInputBar extends StatefulWidget {
   final void Function(String message, String priority, String shop) onSend;
+  final bool isPhone;
 
   const OrderInputBar({
     required this.onSend,
+    this.isPhone = false,
     super.key,
   });
 
@@ -865,15 +1010,16 @@ class _OrderInputBarState extends State<OrderInputBar> {
 
   @override
   Widget build(BuildContext context) {
+    final bool phone = widget.isPhone;
     return Center(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Container(
-            constraints: BoxConstraints(maxWidth: 700),
-            margin: EdgeInsets.symmetric(vertical: 12),
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            constraints: BoxConstraints(maxWidth: phone ? double.infinity : 700),
+            margin: EdgeInsets.symmetric(vertical: phone ? 4 : 12, horizontal: phone ? 4 : 0),
+            padding: EdgeInsets.symmetric(horizontal: phone ? 8 : 16, vertical: phone ? 6 : 10),
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.55),
               borderRadius: BorderRadius.circular(32),
@@ -885,107 +1031,187 @@ class _OrderInputBarState extends State<OrderInputBar> {
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                // Input field
-                Expanded(
-                  flex: 3,
-                  child: TextField(
-                    controller: _controller,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'Sora',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: "Enter your order...",
-                      hintStyle: TextStyle(
-                        color: Colors.white70,
-                        fontFamily: 'Sora',
-                        fontSize: 18,
+            child: phone
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'Sora',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: "Enter your order...",
+                                hintStyle: TextStyle(
+                                  color: Colors.white70,
+                                  fontFamily: 'Sora',
+                                  fontSize: 16,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 0),
+                              ),
+                              onSubmitted: (_) {
+                                widget.onSend(
+                                  _controller.text,
+                                  _selectedPriority,
+                                  _selectedShop,
+                                );
+                                setState(() {
+                                  _controller.clear();
+                                });
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              widget.onSend(
+                                _controller.text,
+                                _selectedPriority,
+                                _selectedShop,
+                              );
+                              setState(() {
+                                _controller.clear();
+                              });
+                            },
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFFB16CEA), Color(0xFF5F52D6)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.purple.withOpacity(0.18),
+                                    blurRadius: 12,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 28),
+                            ),
+                          ),
+                        ],
                       ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 0),
-                    ),
-                    onSubmitted: (_) {
-                      widget.onSend(
-                        _controller.text,
-                        _selectedPriority,
-                        _selectedShop,
-                      );
-                      // Optionally clear input after send:
-                       setState(() {
-                        _controller.clear();
-                      //   _selectedPriority = '';
-                      //   _selectedShop = '';
-                      });
-                    },
-                  ),
-                ),
-                SizedBox(width: 32),
-                // Priority buttons (circular)
-                _priorityCircle(Color(0xFFE74C3C), "High"),
-                SizedBox(width: 18),
-                _priorityCircle(Color(0xFFF7CA18), "Moderate"),
-                SizedBox(width: 18),
-                _priorityCircle(Color(0xFF2ECC71), "Low"),
-                SizedBox(width: 28),
-                // Divider
-                Container(
-                  width: 2,
-                  height: 36,
-                  color: Colors.white24,
-                ),
-                SizedBox(width: 28),
-                // Shop icon (circular, white background)
-                _shopCircle('assets/shop1.png', 'Shop 1'),
-                SizedBox(width: 14),
-                _shopCircle('assets/shop2.png', 'Shop 2'),
-                SizedBox(width: 28),
-                // Send button (circular gradient)
-                GestureDetector(
-                  onTap: () {
-                    widget.onSend(
-                      _controller.text,
-                      _selectedPriority,
-                      _selectedShop,
-                    );
-                    // Optionally clear input after send:
-                    // setState(() {
-                    //   _controller.clear();
-                    //   _selectedPriority = '';
-                    //   _selectedShop = '';
-                    // });
-                  },
-                  child: Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [Color(0xFFB16CEA), Color(0xFF5F52D6)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                      SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _priorityCircle(Color(0xFFE74C3C), "High"),
+                          SizedBox(width: 10),
+                          _priorityCircle(Color(0xFFF7CA18), "Moderate"),
+                          SizedBox(width: 10),
+                          _priorityCircle(Color(0xFF2ECC71), "Low"),
+                          SizedBox(width: 18),
+                          _shopCircle('assets/shop1.png', 'Shop 1'),
+                          SizedBox(width: 8),
+                          _shopCircle('assets/shop2.png', 'Shop 2'),
+                        ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.purple.withOpacity(0.18),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      // Input field
+                      Expanded(
+                        flex: 3,
+                        child: TextField(
+                          controller: _controller,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Sora',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: "Enter your order...",
+                            hintStyle: TextStyle(
+                              color: Colors.white70,
+                              fontFamily: 'Sora',
+                              fontSize: 18,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 0),
+                          ),
+                          onSubmitted: (_) {
+                            widget.onSend(
+                              _controller.text,
+                              _selectedPriority,
+                              _selectedShop,
+                            );
+                            setState(() {
+                              _controller.clear();
+                            });
+                          },
                         ),
-                      ],
-                    ),
-                    child: Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 32),
+                      ),
+                      SizedBox(width: 32),
+                      _priorityCircle(Color(0xFFE74C3C), "High"),
+                      SizedBox(width: 18),
+                      _priorityCircle(Color(0xFFF7CA18), "Moderate"),
+                      SizedBox(width: 18),
+                      _priorityCircle(Color(0xFF2ECC71), "Low"),
+                      SizedBox(width: 28),
+                      Container(
+                        width: 2,
+                        height: 36,
+                        color: Colors.white24,
+                      ),
+                      SizedBox(width: 28),
+                      _shopCircle('assets/shop1.png', 'Shop 1'),
+                      SizedBox(width: 14),
+                      _shopCircle('assets/shop2.png', 'Shop 2'),
+                      SizedBox(width: 28),
+                      GestureDetector(
+                        onTap: () {
+                          widget.onSend(
+                            _controller.text,
+                            _selectedPriority,
+                            _selectedShop,
+                          );
+                          setState(() {
+                            _controller.clear();
+                          });
+                        },
+                        child: Container(
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFB16CEA), Color(0xFF5F52D6)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.purple.withOpacity(0.18),
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 32),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
-      ),
-    );
+    ));
   }
+
+  
 
   Widget _priorityCircle(Color color, String label) {
     final bool selected = _selectedPriority == label;
@@ -1040,6 +1266,96 @@ class _OrderInputBarState extends State<OrderInputBar> {
         ),
         child: Center(
           child: Image.asset(iconPath, fit: BoxFit.contain, width: 36, height: 36),
+        ),
+      ),
+    );
+  }
+
+  
+}
+class OrderSummaryBar extends StatelessWidget {
+  final int total;
+  final int completed;
+  final int red;
+  final int yellow;
+  final int green;
+
+  const OrderSummaryBar({
+    required this.total,
+    required this.completed,
+    required this.red,
+    required this.yellow,
+    required this.green,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.55),
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.10),
+                blurRadius: 24,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _summaryItem(Icons.list_alt, "Total", total, Colors.white),
+              SizedBox(width: 18),
+              _summaryItem(Icons.check_circle, "Completed", completed, Colors.greenAccent),
+              SizedBox(width: 18),
+              _colorSummary(Colors.redAccent, red),
+              SizedBox(width: 8),
+              _colorSummary(Color(0xFFF7CA18), yellow),
+              SizedBox(width: 8),
+              _colorSummary(Colors.greenAccent, green),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryItem(IconData icon, String label, int count, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 22),
+        SizedBox(width: 6),
+        Text("$count", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18)),
+        SizedBox(width: 4),
+        Text(label, style: TextStyle(color: Colors.white70, fontSize: 14)),
+      ],
+    );
+  }
+
+  Widget _colorSummary(Color color, int count) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Center(
+        child: Text(
+          "$count",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
         ),
       ),
     );

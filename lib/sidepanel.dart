@@ -90,6 +90,27 @@ class _SidePanelState extends State<SidePanel> {
             ),
             child: Column(
               children: [
+                // --- Add this block at the top of the Column ---
+                SizedBox(height: 16),
+                widget.expanded
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Image.asset(
+                          'assets/logo.png',
+                          height: 48,
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Image.asset(
+                          'assets/smalllogo.png',
+                          height: 32,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                // --- End logo block ---
+
                 // Expand/Collapse button
                 Align(
                   alignment: Alignment.topRight,
