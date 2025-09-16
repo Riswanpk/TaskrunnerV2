@@ -56,12 +56,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
+    _loadThemePreference();
     _loadSidePanelState();
     _listenForNewOrders();
     _fluidController = AnimationController(
       vsync: this,
       duration: Duration(seconds: 2),
     )..repeat();
+    _loadThemePreference(); // Load theme preference on startup
   }
 
   Future<void> _loadSidePanelState() async {
@@ -74,6 +76,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Future<void> _saveSidePanelState(bool expanded) async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setBool('sidePanelExpanded', expanded);
+  }
+
+  Future<void> _saveThemePreference(bool isDark) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkTheme', isDark);
+  }
+
+  Future<void> _loadThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isDarkTheme = prefs.getBool('isDarkTheme') ?? true;
+    });
   }
 
   @override
@@ -821,7 +835,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       isDarkTheme: _isDarkTheme,
                     ),
                     isDarkTheme: _isDarkTheme, // <-- Add this argument
-                    onThemeToggle: () => setState(() => _isDarkTheme = !_isDarkTheme), // <-- Add this argument
+                    onThemeToggle: () {
+                      setState(() => _isDarkTheme = !_isDarkTheme);
+                      _saveThemePreference(_isDarkTheme); // <-- Save theme preference
+                    }, // <-- Add this argument
                   );
                 },
               ),
@@ -944,7 +961,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   onLogout: _logOut,
                   onDeleteAll: _deleteAllOrders,
                   isDarkTheme: _isDarkTheme, // <-- Pass theme state
-                  onThemeToggle: () => setState(() => _isDarkTheme = !_isDarkTheme), // <-- Pass toggle callback
+                  onThemeToggle: () {
+                    setState(() => _isDarkTheme = !_isDarkTheme);
+                    _saveThemePreference(_isDarkTheme); // <-- Pass toggle callback
+                  },
                 ),
               ),
             // Main content
