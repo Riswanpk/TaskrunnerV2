@@ -269,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             Container(
                               width: 2,
                               height: 36,
-                              color: Colors.white24,
+                              color: _isDarkTheme ? Colors.white24 : Colors.black26, // <-- Theme adaptive divider
                             ),
                             SizedBox(width: 28),
                             // Shop icons
@@ -540,7 +540,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.55),
+                                color: _isDarkTheme
+                                  ? Colors.black.withOpacity(0.55)
+                                  : Colors.white.withOpacity(0.85), 
                               ),
                               padding: EdgeInsets.all(16),
                               child: Column(
@@ -551,12 +553,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   if (hasUserName)
                                     Row(
                                       children: [
-                                        Icon(Icons.person, color: Colors.white54, size: 18),
+                                        Icon(
+                                          Icons.person,
+                                          color: _isDarkTheme ? Colors.white54 : Colors.black54, // <-- Theme adaptive
+                                          size: 18,
+                                        ),
                                         SizedBox(width: 6),
                                         Text(
                                           data['userName'],
                                           style: TextStyle(
-                                            color: Colors.white70,
+                                            color: _isDarkTheme ? Colors.white70 : Colors.black87, // <-- Theme adaptive
                                             fontWeight: FontWeight.w600,
                                             fontSize: 13,
                                           ),
@@ -589,7 +595,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w700,
-                                            color: Colors.white.withOpacity(isCompleted ? 0.5 : 0.95),
+                                            color: _isDarkTheme
+                                                ? Colors.white.withOpacity(isCompleted ? 0.5 : 0.95)
+                                                : Colors.black.withOpacity(isCompleted ? 0.5 : 0.95), // <-- Theme adaptive
                                             letterSpacing: 0.1,
                                             height: 1.3,
                                             decoration: isCompleted
@@ -597,7 +605,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                                 : TextDecoration.none,
                                             shadows: [
                                               Shadow(
-                                                color: Colors.black.withOpacity(0.18),
+                                                color: _isDarkTheme
+                                                    ? Colors.black.withOpacity(0.18)
+                                                    : Colors.grey.withOpacity(0.10), // <-- Theme adaptive
                                                 blurRadius: 2,
                                               ),
                                             ],
@@ -628,7 +638,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                         formattedTime,
                                         style: TextStyle(
                                           fontSize: phone ? 11 : 13,
-                                          color: Colors.white60,
+                                          color: _isDarkTheme ? Colors.white60 : Colors.black54, // <-- Theme adaptive
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -754,6 +764,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  bool _isDarkTheme = true; // <-- Add this
+
   @override
   Widget build(BuildContext context) {
     final bool phone = MediaQuery.of(context).size.width < 600;
@@ -806,7 +818,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       yellow: summary['yellow']!,
                       green: summary['green']!,
                       compact: true, 
+                      isDarkTheme: _isDarkTheme,
                     ),
+                    isDarkTheme: _isDarkTheme, // <-- Add this argument
+                    onThemeToggle: () => setState(() => _isDarkTheme = !_isDarkTheme), // <-- Add this argument
                   );
                 },
               ),
@@ -892,13 +907,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         : null,
       extendBodyBehindAppBar: true,
       body: SafeArea(
-        top: !phone, // Prevent double padding if AppBar is present
+        top: !phone,
         child: Stack(
           children: [
             // Background image and blur
             Positioned.fill(
               child: Image.asset(
-                'assets/waveblue.png',
+                _isDarkTheme ? 'assets/waveblue.png' : 'assets/lightbg.png', // <-- Switch background
                 fit: BoxFit.cover,
               ),
             ),
@@ -906,7 +921,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Container(
-                  color: Colors.white.withOpacity(0.08),
+                  color: _isDarkTheme
+                      ? Colors.white.withOpacity(0.08)
+                      : Colors.black.withOpacity(0.04), // <-- Lighter overlay
                 ),
               ),
             ),
@@ -926,6 +943,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   selectedDate: _selectedDate,
                   onLogout: _logOut,
                   onDeleteAll: _deleteAllOrders,
+                  isDarkTheme: _isDarkTheme, // <-- Pass theme state
+                  onThemeToggle: () => setState(() => _isDarkTheme = !_isDarkTheme), // <-- Pass toggle callback
                 ),
               ),
             // Main content
@@ -959,6 +978,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             Expanded(
                               child: OrderInputBar(
                                 isPhone: phone,
+                                isDarkTheme: _isDarkTheme, 
                                 onSend: (message, priority, shop) {
                                   _storeMessageToFirestore(message, priority, shop);
                                 },
@@ -1001,6 +1021,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   red: summary['red']!,
                                   yellow: summary['yellow']!,
                                   green: summary['green']!,
+                                  isDarkTheme: _isDarkTheme,
                                 );
                               },
                             ),
@@ -1010,6 +1031,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     if (phone)
                       OrderInputBar(
                         isPhone: phone,
+                        isDarkTheme: _isDarkTheme, // <-- Add this
                         onSend: (message, priority, shop) {
                           _storeMessageToFirestore(message, priority, shop);
                         },
@@ -1116,10 +1138,12 @@ class _FluidBorderPainter extends CustomPainter {
 class OrderInputBar extends StatefulWidget {
   final void Function(String message, String priority, String shop) onSend;
   final bool isPhone;
+  final bool isDarkTheme; // <-- Add this
 
   const OrderInputBar({
     required this.onSend,
     this.isPhone = false,
+    required this.isDarkTheme, // <-- Add this
     super.key,
   });
 
@@ -1135,6 +1159,8 @@ class _OrderInputBarState extends State<OrderInputBar> {
   @override
   Widget build(BuildContext context) {
     final bool phone = widget.isPhone;
+    final bool isDarkTheme = widget.isDarkTheme; // <-- Use this
+
     return Center(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
@@ -1145,11 +1171,15 @@ class _OrderInputBarState extends State<OrderInputBar> {
             margin: EdgeInsets.symmetric(vertical: phone ? 4 : 12, horizontal: phone ? 4 : 0),
             padding: EdgeInsets.symmetric(horizontal: phone ? 8 : 16, vertical: phone ? 6 : 10),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.55),
+              color: isDarkTheme
+                  ? Colors.black.withOpacity(0.55)
+                  : Colors.white.withOpacity(0.85), // <-- Theme background
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.18),
+                  color: isDarkTheme
+                      ? Colors.black.withOpacity(0.18)
+                      : Colors.grey.withOpacity(0.10), // <-- Theme shadow
                   blurRadius: 24,
                   offset: Offset(0, 8),
                 ),
@@ -1165,7 +1195,7 @@ class _OrderInputBarState extends State<OrderInputBar> {
                             child: TextField(
                               controller: _controller,
                               style: TextStyle(
-                                color: Colors.white,
+                                color: isDarkTheme ? Colors.white : Colors.black, // <-- Theme text
                                 fontFamily: 'Sora',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -1173,7 +1203,7 @@ class _OrderInputBarState extends State<OrderInputBar> {
                               decoration: InputDecoration(
                                 hintText: "Enter your order...",
                                 hintStyle: TextStyle(
-                                  color: Colors.white70,
+                                  color: isDarkTheme ? Colors.white70 : Colors.black54, // <-- Theme hint
                                   fontFamily: 'Sora',
                                   fontSize: 16,
                                 ),
@@ -1252,7 +1282,7 @@ class _OrderInputBarState extends State<OrderInputBar> {
                         child: TextField(
                           controller: _controller,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDarkTheme ? Colors.white : Colors.black, // <-- Theme text
                             fontFamily: 'Sora',
                             fontSize: 18,
                             fontWeight: FontWeight.w500,
@@ -1260,7 +1290,7 @@ class _OrderInputBarState extends State<OrderInputBar> {
                           decoration: InputDecoration(
                             hintText: "Enter your order...",
                             hintStyle: TextStyle(
-                              color: Colors.white70,
+                              color: isDarkTheme ? Colors.white70 : Colors.black54, // <-- Theme hint
                               fontFamily: 'Sora',
                               fontSize: 18,
                             ),
@@ -1289,7 +1319,7 @@ class _OrderInputBarState extends State<OrderInputBar> {
                       Container(
                         width: 2,
                         height: 36,
-                        color: Colors.white24,
+                        color: isDarkTheme ? Colors.white24 : Colors.black26, // <-- Theme adaptive divider
                       ),
                       SizedBox(width: 28),
                       _shopCircle('assets/shop1.png', 'Shop 1'),
@@ -1404,6 +1434,7 @@ class OrderSummaryBar extends StatelessWidget {
   final int yellow;
   final int green;
   final bool compact;
+  final bool isDarkTheme; // <-- Add this
 
   const OrderSummaryBar({
     required this.total,
@@ -1412,11 +1443,14 @@ class OrderSummaryBar extends StatelessWidget {
     required this.yellow,
     required this.green,
     this.compact = false,
+    required this.isDarkTheme, // <-- Add this
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkTheme = this.isDarkTheme; // <-- Use the passed value
+
     final double iconSize = compact ? 16 : 22;
     final double circleSize = compact ? 18 : 28;
     final double fontSize = compact ? 12 : 18;
@@ -1431,11 +1465,15 @@ class OrderSummaryBar extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.55),
+            color: isDarkTheme
+                ? Colors.black.withOpacity(0.55)
+                : Colors.white.withOpacity(0.85), // <-- Theme adaptive background
             borderRadius: BorderRadius.circular(32),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.10),
+                color: isDarkTheme
+                    ? Colors.black.withOpacity(0.10)
+                    : Colors.grey.withOpacity(0.10), // <-- Theme adaptive shadow
                 blurRadius: 24,
                 offset: Offset(0, 8),
               ),
@@ -1444,9 +1482,9 @@ class OrderSummaryBar extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _summaryItem(Icons.list_alt, "Total", total, Colors.white, iconSize, fontSize, labelSize),
+              _summaryItem(Icons.list_alt, "Total", total, isDarkTheme ? Colors.white : Colors.black, iconSize, fontSize, labelSize, isDarkTheme),
               SizedBox(width: compact ? 8 : 18),
-              _summaryItem(Icons.check_circle, "Completed", completed, Colors.greenAccent, iconSize, fontSize, labelSize),
+              _summaryItem(Icons.check_circle, "Completed", completed, Colors.greenAccent, iconSize, fontSize, labelSize, isDarkTheme),
               SizedBox(width: compact ? 8 : 18),
               _colorSummary(Colors.redAccent, red, circleSize, fontSize),
               SizedBox(width: compact ? 4 : 8),
@@ -1460,14 +1498,14 @@ class OrderSummaryBar extends StatelessWidget {
     );
   }
 
-  Widget _summaryItem(IconData icon, String label, int count, Color color, double iconSize, double fontSize, double labelSize) {
+  Widget _summaryItem(IconData icon, String label, int count, Color color, double iconSize, double fontSize, double labelSize, bool isDarkTheme) {
     return Row(
       children: [
         Icon(icon, color: color, size: iconSize),
         SizedBox(width: 3),
         Text("$count", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: fontSize)),
         SizedBox(width: 2),
-        Text(label, style: TextStyle(color: Colors.white70, fontSize: labelSize)),
+        Text(label, style: TextStyle(color: isDarkTheme ? Colors.white70 : Colors.black54, fontSize: labelSize)), // <-- Theme adaptive label
       ],
     );
   }

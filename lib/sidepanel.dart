@@ -11,7 +11,8 @@ class SidePanel extends StatefulWidget {
   final VoidCallback onLogout;
   final VoidCallback onDeleteAll;
   final Widget? summaryBar; // Add this field
-
+  final bool isDarkTheme; // <-- Add this
+  final VoidCallback onThemeToggle; // <-- Add this
 
   const SidePanel({
     required this.expanded,
@@ -21,6 +22,8 @@ class SidePanel extends StatefulWidget {
     required this.onLogout,
     required this.onDeleteAll,
     this.summaryBar,
+    required this.isDarkTheme, // <-- Add this
+    required this.onThemeToggle, // <-- Add this
     super.key,
   });
 
@@ -76,7 +79,9 @@ class _SidePanelState extends State<SidePanel> {
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.55),
+              color: widget.isDarkTheme
+                  ? Colors.black.withOpacity(0.55)
+                  : Colors.white.withOpacity(0.85), // <-- Light theme color
               border: Border(
                 right: BorderSide(
                   color: Colors.white.withOpacity(0.08),
@@ -119,7 +124,10 @@ class _SidePanelState extends State<SidePanel> {
                 Align(
                   alignment: Alignment.topRight,
                   child: IconButton(
-                    icon: Icon(widget.expanded ? Icons.chevron_left : Icons.chevron_right, color: Colors.white70),
+                    icon: Icon(
+                      widget.expanded ? Icons.chevron_left : Icons.chevron_right,
+                      color: widget.isDarkTheme ? Colors.white70 : Colors.black87, // <-- Change here
+                    ),
                     onPressed: () {
                       if (MediaQuery.of(context).size.width < 600) {
                         Navigator.of(context).pop(); // Close drawer on phone
@@ -135,7 +143,7 @@ class _SidePanelState extends State<SidePanel> {
                     child: Text(
                       "Orders",
                       style: TextStyle(
-                        color: Colors.white,
+                        color: widget.isDarkTheme ? Colors.white : Colors.black, // <-- Change here
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
                         letterSpacing: 1.2,
@@ -188,7 +196,7 @@ class _SidePanelState extends State<SidePanel> {
                     padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8),
                     child: Column(
                       children: [
-                        Divider(color: Colors.white24),
+                        Divider(color: widget.isDarkTheme ? Colors.white24 : Colors.black12),
                         ListTile(
                           leading: Icon(Icons.delete_forever, color: Colors.redAccent),
                           title: Text("Delete All", style: TextStyle(color: Colors.redAccent)),
@@ -197,9 +205,32 @@ class _SidePanelState extends State<SidePanel> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         ListTile(
-                          leading: Icon(Icons.logout, color: Colors.white70),
-                          title: Text("Logout", style: TextStyle(color: Colors.white70)),
+                          leading: Icon(Icons.logout, color: widget.isDarkTheme ? Colors.white70 : Colors.black54),
+                          title: Text("Logout", style: TextStyle(color: widget.isDarkTheme ? Colors.white70 : Colors.black54)),
                           onTap: widget.onLogout,
+                          dense: true,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        // --- Theme Switch ---
+                        ListTile(
+                          leading: Icon(
+                            widget.isDarkTheme ? Icons.dark_mode : Icons.light_mode,
+                            color: widget.isDarkTheme ? Colors.purpleAccent : Colors.orangeAccent,
+                          ),
+                          title: Text(
+                            widget.isDarkTheme ? "Dark Theme" : "Light Theme",
+                            style: TextStyle(
+                              color: widget.isDarkTheme ? Colors.purpleAccent : Colors.orangeAccent,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          trailing: Switch(
+                            value: widget.isDarkTheme,
+                            onChanged: (_) => widget.onThemeToggle(),
+                            activeColor: Colors.purpleAccent,
+                            inactiveThumbColor: Colors.orangeAccent,
+                          ),
+                          onTap: widget.onThemeToggle,
                           dense: true,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
@@ -216,9 +247,23 @@ class _SidePanelState extends State<SidePanel> {
 
   Widget _dateTile({required String label, required DateTime date, required bool selected}) {
     return ListTile(
-      leading: Icon(Icons.calendar_today, color: selected ? Colors.purpleAccent : Colors.white38, size: 22),
+      leading: Icon(
+        Icons.calendar_today,
+        color: selected
+            ? Colors.purpleAccent
+            : (widget.isDarkTheme ? Colors.white38 : Colors.black38), // <-- Change here
+        size: 22,
+      ),
       title: widget.expanded
-          ? Text(label, style: TextStyle(color: selected ? Colors.purpleAccent : Colors.white70, fontWeight: selected ? FontWeight.bold : FontWeight.normal))
+          ? Text(
+              label,
+              style: TextStyle(
+                color: selected
+                    ? Colors.purpleAccent
+                    : (widget.isDarkTheme ? Colors.white70 : Colors.black), // <-- Change here
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
+            )
           : null,
       onTap: () => widget.onDateSelected(label == "Today" ? null : date),
       selected: selected,
